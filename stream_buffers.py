@@ -2,26 +2,44 @@ import os
 import arcpy
 from arcpy import env
 from datetime import datetime
-
-# env.workspace = r"C:\GIS\Water"
+arcpy.CheckOutExtension("Spatial")
 
 print 'Start time:', str(datetime.now())
 
-gdb = r"C:\GIS\Water\Buffer_analysis\30_ft_buffers.gdb"
+# Buffer distance (ft)
+buffer_dist = 5
+buffer_dist = str(buffer_dist)
+buffer_arg = buffer_dist + " feet"
 
-# # Imports necessary files.
-# # Counties are just counties in CONUS.
-# # NHD is National Hydrography Dataset Plus V2.
-# counties = r"C:\GIS\Multi-project\US counties\tl_2017_us_county_reproj_World_Eckert_IV.shp"
-# NHD = r"C:\GIS\Multi-project\NHDPlusV2\NHDPlusNationalData\NHDPlusV2_National_Seamless.gdb\NHDSnapshot\NHDFlowline_Network"
+#Folder and gdb where the output files will go
+folder = r"C:\GIS\Water\Buffer_analysis"
+gdb = buffer_dist + "_ft_buffers.gdb"
+full_gdb = os.path.join(folder, gdb)
+
+# Imports necessary files.
+# Counties are just counties in CONUS.
+# NHD is National Hydrography Dataset Plus V2.
+# Land use is from Susan Cook-Patton at The Nature Conservancy
+counties = r"C:\GIS\Multi-project\US_counties\tl_2017_us_county_reproj_World_Eckert_IV.shp"
+NHD = r"C:\GIS\Multi-project\NHDPlusV2\NHDPlusNationalData\NHDPlusV2_National_Seamless.gdb\NHDSnapshot\NHDFlowline_Network"
+land_use = r"C:\GIS\Water\Buffer_analysis\TNC_reforestation_area_from_Susan_Cook_20180515\Refor_To_Share.tif"
+
+merged_file = 'Merged_buffers_' + buffer_dist +'_ft'
+merged_file_full = os.path.join(full_gdb, merged_file)
+
+merged_file_reproj = 'Merged_buffers_' + buffer_dist +'_ft_reproj'
+merged_file_reproj_full = os.path.join(full_gdb, merged_file_reproj)
+
+# #Creates a gdb for the output files
+# arcpy.CreateFileGDB_management(folder, gdb)
 #
 # # Converts county and NHD shapefiles into layers
 # arcpy.MakeFeatureLayer_management(counties, 'county_lyr')
 # arcpy.MakeFeatureLayer_management(NHD, 'NHD_lyr')
 #
-# ## To start the script at a particular feature
-# # where = '"FID" = 1366'
-# # arcpy.SelectLayerByAttribute_management('county_lyr', "NEW_SELECTION", where)
+# # To start the script at a particular feature
+# where = '"FID" > 3104'
+# arcpy.SelectLayerByAttribute_management('county_lyr', "NEW_SELECTION", where)
 #
 # # Coordinates for measuring area of vectors
 # out_coords = arcpy.Describe(counties).spatialReference
@@ -57,54 +75,72 @@ gdb = r"C:\GIS\Water\Buffer_analysis\30_ft_buffers.gdb"
 #         # Where output files go
 #         outpath = r"C:\GIS\Water\Buffer_analysis\County_buffers"
 #
-#         for x in range(6, 7):
+#         # Buffers NHD stream flowlines
+#         print '  Buffering', cnty, 'at', buffer_arg
+#         buffered_name = outpath + os.sep + cnty + "_buffer_" + buffer_dist + "ft.shp"
+#         arcpy.Buffer_analysis('NHD_lyr', buffered_name, buffer_arg, "FULL", "ROUND", "ALL")
 #
-#             # Buffer distance
-#             buffer_dist = x * 5
-#             buffer_dist = str(buffer_dist)
-#             buffer_arg = buffer_dist + " feet"
+#         # Reprojects buffered flowlines to projection of the counties
+#         print '  Reprojecting', buffer_arg, 'buffer for', cnty, 'to World Eckert IV'
+#         reproj_name = outpath + os.sep + cnty + "_buffer_" + buffer_dist + "ft_reproj_ft.shp"
+#         arcpy.Project_management(buffered_name, reproj_name, out_coords)
 #
-#             # Buffers NHD stream flowlines
-#             print '  Buffering', cnty, 'at', buffer_arg
-#             buffered_name = outpath + os.sep + cnty + "_buffer_" + buffer_dist + "ft.shp"
-#             arcpy.Buffer_analysis('NHD_lyr', buffered_name, buffer_arg, "FULL", "ROUND", "ALL")
+#         # Clips buffers to county
+#         print '  Clipping', buffer_arg, 'buffers to', cnty
+#         clipped_name = outpath + os.sep + cnty + "_buffer_" + buffer_dist + "ft_reproj_clip.shp"
+#         arcpy.Clip_analysis(reproj_name, 'county_lyr', clipped_name)
 #
-#             # Reprojects buffered flowlines to projection of the counties
-#             print '  Reprojecting', buffer_arg, 'buffer for', cnty, 'to World Eckert IV'
-#             reproj_name = outpath +os.sep +cnty + "_buffer_" + buffer_dist + "ft_reproj_ft.shp"
-#             arcpy.Project_management(buffered_name, reproj_name, out_coords)
+#         # Calculates area in proper projection for buffered flowlines
+#         print '  Calculating area for', cnty, 'segments with buffer of', buffer_arg
+#         arcpy.AddGeometryAttributes_management(clipped_name, 'AREA', Area_Unit='ACRES')
 #
-#             # Clips buffers to county
-#             print '  Clipping', buffer_arg, 'buffers to', cnty
-#             clipped_name = outpath + os.sep + cnty + "_buffer_" + buffer_dist + "ft_reproj_clip.shp"
-#             arcpy.Clip_analysis(reproj_name, 'county_lyr', clipped_name)
+#         arcpy.AddField_management(clipped_name, 'GEOID', 'TEXT')
+#         arcpy.CalculateField_management(clipped_name, 'GEOID', '"' + cnty + '"', 'PYTHON')
 #
-#             # Calculates area in proper projection for buffered flowlines
-#             print '  Calculating area for', cnty, 'segments with buffer of', buffer_arg
-#             arcpy.AddGeometryAttributes_management(clipped_name, 'AREA', Area_Unit='ACRES')
+#         arcpy.FeatureClassToGeodatabase_conversion(clipped_name, full_gdb)
 #
-#             arcpy.AddField_management(clipped_name, 'GEOID', 'TEXT')
-#             arcpy.CalculateField_management(clipped_name, 'GEOID', '"' + cnty + '"', 'PYTHON')
+#         # Deletes the intermediate shapefiles
+#         print '  Deleting intermediate shapefiles for', cnty
+#         arcpy.Delete_management(buffered_name)
+#         arcpy.Delete_management(reproj_name)
+#         arcpy.Delete_management(clipped_name)
 #
-#             arcpy.FeatureClassToGeodatabase_conversion(clipped_name, gdb)
+#         print '  County end time:', str(datetime.now())
 #
-#             # Deletes the intermediate shapefiles
-#             print '  Deleting intermediate shapefiles for', cnty
-#             arcpy.Delete_management(buffered_name)
-#             arcpy.Delete_management(reproj_name)
-#             arcpy.Delete_management(clipped_name)
-#
-#             print '  County end time:', str(datetime.now())
-#
-#
-# print 'End time:', str(datetime.now())
+# print 'Done buffering counties at ' + str(datetime.now())
 
+# # Gets all the feature classes containing county buffers in the gdb
+# arcpy.env.workspace = full_gdb
+# buffer_list = arcpy.ListFeatureClasses()
+# print buffer_list
+#
+# # Merges the feature classes from each county into a single feature class containing all counties
+# arcpy.Merge_management(buffer_list, merged_file_full)
+# print 'Buffer files merged'
 
+# # Projects the merged buffers
+# print 'Projecting buffers to projection of land use raster'
+# out_coords_land_use = arcpy.Describe(land_use).spatialReference
+# arcpy.Project_management(merged_file_full, merged_file_reproj_full, out_coords_land_use)
+#
+# # Calculates the area of each reforestable land use in each county buffer
+#
+# print 'Calculating area of reforestable wetland in buffer'
+# wetland_table = os.path.join(full_gdb, 'Wetland_output_' + buffer_dist + '_ft')
+# where = '"Wetland" IN (1, 2) AND "NAFDforest" NOT IN (1) AND "Urban" NOT IN (1) AND "Roads" NOT IN (1)'
+# arcpy.MakeRasterLayer_management(land_use, "reforestable_wetland", where)
+# arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", "reforestable_wetland", "Wetland", wetland_table)
+#
+print 'Calculating area of pasture, crop, pasture/crop, and other reforestable land in buffer'
+pasture_crop_table= os.path.join(full_gdb, 'Pasture_crop_output_' + buffer_dist + '_ft')
+arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", land_use, "RC", pasture_crop_table)
 
-arcpy.env.workspace = r"C:\GIS\Water\Buffer_analysis\30_ft_buffers.gdb"
-buffer_list = arcpy.ListFeatureClasses()
+print 'Calculated reforestable land area'
 
-print buffer_list
+# # Calculates the area of open water within the buffer
+# print 'Calculating open water area'
+# open_water_table= os.path.join(full_gdb, 'Open_water_output_' + buffer_dist + '_ft_new')
+# arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", land_use, "BPSgroupVe", open_water_table)
+# print 'Calculated open water area'
 
-arcpy.Merge_management(buffer_list, os.path.join(gdb, 'Merged_buffer_shps_30_ft'))
-print 'Buffer files merged'
+print 'End time:', str(datetime.now())

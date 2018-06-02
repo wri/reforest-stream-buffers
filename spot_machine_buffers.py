@@ -1,14 +1,49 @@
 # connects to postgres
 import psycopg2
+import subprocess
+import os
+
+# Paths for NHD flowlines, county boundaries, and land use file
+nhd_dir = 'C:\\GIS\\Multi-project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
+nhd_lines = 'NHDFlowline_Network'
+nhd_path = os.path.join(nhd_dir, nhd_lines)
+county_path = 'C:\\GIS\\Multi-project\\US_counties\\tl_2017_us_county_reproj_world_eckert_iv.shp'
+landuse_path = 'C:\\GIS\\Water\\Buffer_analysis\\TNC_refor_raster_clipped_to_Fulton_Cnty_20180529.tif'
 
 # builds our connection string, just like for ogr2ogr
-conn = psycopg2.connect(host="localhost", dbname="david.gibbs")
+conn = psycopg2.connect(host="localhost")
 
 # creates a cursor object
 curs = conn.cursor()
 
+# Commands for importing county boundaries, NHD flowlines, and land use files to Postgres database
+county_upload = ['ogr2ogr', '-f', 'PostgreSQL', 'PG:host=localhost',
+                county_path, '-overwrite', '-progress',
+                '-nln', 'US_counties_reproj_new',
+                '-nlt', 'PROMOTE_TO_MULTI',
+                '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
+                , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
+                ]
+
+nhd_upload = ['ogr2ogr', '-f', 'PostgreSQL', 'PG:host=localhost',
+                nhd_dir, nhd_lines, '-overwrite', '-progress',
+                '-select', 'COMID, StreamOrde, FTYPE, FCODE, WBAreaType',
+                '-sql', 'SELECT * from NHDFlowline_Network WHERE WBAreaType IN (\'Area of Complex Channels\', \'CanalDitch\', \'StreamRiver\', \'Wash\', \' \')',
+                '-nln', 'NHD_streams_new', '-t_srs', 'EPSG:54012', '-dim', '2'
+                ]
+
+LU_upload = 'raster2pgsql -d -I -C -M -s 6703 "C:\GIS\Water\Buffer_analysis\TNC_refor_raster_clipped_to_Fulton_Cnty_20180529.tif" fulton_LU | psql'
+
+# # Actually runs the import commands
+print " ".join(county_upload)
+subprocess.check_call(county_upload)
+print " ".join(nhd_upload)
+subprocess.check_call(nhd_upload)
+print " ".join(LU_upload)
+subprocess.call(LU_upload, shell=True)
+
 county = "fulton_county_reproj"
-nhd_streams = "nhd_streams"
+nhd_streams = "nhd_streams_new"
 area_field = "area_sqmtr"
 
 clip = ('CREATE TABLE nhd_clip AS '
@@ -21,7 +56,7 @@ clip = ('CREATE TABLE nhd_clip AS '
 print 'Clipping streams to county'
 curs.execute(clip)
 
-for x in range(1, 7):
+for x in range(1, 2):
 
     distance = x * 3.048/2
     final_table = "nhd_clip_buff_clip_dissolve_" + str(x*5) + "_ft"
@@ -48,8 +83,12 @@ for x in range(1, 7):
     area = ('ALTER TABLE {t} ADD COLUMN {a} real; '
             'UPDATE {t} SET {a} = ST_Area(geom); '.format(t=final_table, a=area_field))
 
-    delete = ('DROP TABLE nhd_clip; '
-              'DROP TABLE nhd_clip_buff; '
+    project = ('ALTER TABLE {t} '
+            'ALTER COLUMN geom '
+            'TYPE geometry(Geometry, 6703) '
+            'USING ST_Transform(geom, 6703); '.format(t=final_table))
+
+    delete = ('DROP TABLE nhd_clip_buff; '
               'DROP TABLE nhd_clip_buff_clip; ')
 
     print 'Buffering clipped streams'
@@ -60,13 +99,16 @@ for x in range(1, 7):
     curs.execute(dissolve)
     print 'Calculating buffer area'
     curs.execute(area)
+    print 'Projecting buffer to land use raster'
+    curs.execute(project)
     print 'Deleting intermediate tables'
     curs.execute(delete)
 
+final_delete = ('DROP TABLE nhd_clip; ')
+curs.execute(final_delete)
 
-# and then commit our changes
-# very important or they won't show up in the DB!
+# Commits changes to Postgres database
 conn.commit()
 
-# and then close our connection
+# Closes the connection to the Postgres database
 conn.close()
