@@ -2,7 +2,7 @@
 import psycopg2
 import subprocess
 import os
-# import boto3
+import zipfile
 
 # For local use
 # Paths for NHD flowlines, county boundaries, and land use file
@@ -21,6 +21,9 @@ host_name= 'PG:host={}'.format(host)
 copy_counties = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
 print " ".join(copy_counties)
 subprocess.check_call(copy_counties)
+zip_ref = zipfile.ZipFile('./Input_files/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
+zip_ref.extractall('./Input_files')
+zip_ref.close()
 
 copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
 
