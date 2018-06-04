@@ -2,7 +2,7 @@
 import psycopg2
 import subprocess
 import os
-import boto3
+# import boto3
 
 # For local use
 # Paths for NHD flowlines, county boundaries, and land use file
@@ -15,7 +15,7 @@ landuse_path = 'C:\\GIS\\Water\\Buffer_analysis\\TNC_refor_raster_clipped_to_Ful
 counties = "us_counties_reproj"
 
 # host="localhost"
-host="34.229.240.35"
+host="54.147.182.79"
 host_name= 'PG:host={}'.format(host)
 
 copy_files = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.shp', '.']
