@@ -6,7 +6,7 @@ import zipfile
 
 # Paths for NHD flowlines if run on a local machine or a spot machine
 nhd_spot_folder = 'Input_files'
-nhd_local_folder = 'C:\\GIS\\Multi-project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
+nhd_local_folder = 'C:\\GIS\\Multi_project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
 nhd_gdb = 'NHDPlusV2_National_Seamless.gdb'
 nhd_file = 'NHDFlowline_Network'
 nhd_path_spot = os.path.join(nhd_spot_folder, nhd_gdb)
@@ -15,7 +15,7 @@ nhd_path_local = os.path.join(nhd_local_folder)
 # Paths for county boundaries if run on a local machine or a spot machine
 county_file = 'tl_2017_us_county_reproj_World_Eckert_IV.shp'
 county_spot = 'Input_files'
-county_local = 'C:\\GIS\\Multi-project\\US_counties'
+county_local = 'C:\\GIS\\Multi_project\\US_counties'
 county_path_spot = os.path.join(county_spot, county_file)
 county_path_local = os.path.join(county_local, county_file)
 
@@ -37,6 +37,13 @@ zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_I
 zip_ref.extractall('./Input_files')
 zip_ref.close()
 
+copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/NHDPlusV2_National_Seamless.gdb', './Input_files']
+print " ".join(copy_nhd)
+subprocess.check_call(copy_nhd)
+# zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
+# zip_ref.extractall('./Input_files')
+# zip_ref.close()
+
 # builds our connection string, just like for ogr2ogr
 conn = psycopg2.connect(host=host)
 
@@ -49,7 +56,7 @@ county_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
                 '-nln', counties,
                 '-nlt', 'PROMOTE_TO_MULTI',
                 '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
-                , '-t_srs', 'EPSG:54012'
+                # , '-t_srs', 'EPSG:54012'
                 , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
                 ]
 
