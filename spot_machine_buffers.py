@@ -37,7 +37,7 @@ zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_I
 zip_ref.extractall('./Input_files')
 zip_ref.close()
 
-copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/NHDPlusV21_National_Seamless.gdb', './Input_files']
+copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/NHD/NHDPlusV2_National_Seamless.gdb', './Input_files']
 print " ".join(copy_nhd)
 subprocess.check_call(copy_nhd)
 # zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
