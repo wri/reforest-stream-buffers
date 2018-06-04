@@ -39,7 +39,7 @@ county_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
                 '-nln', counties,
                 '-nlt', 'PROMOTE_TO_MULTI',
                 '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
-                , '-t_srs', 'EPSG:54012'
+                # , '-t_srs', 'EPSG:54012'
                 , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
                 ]
 #
