@@ -37,12 +37,18 @@ zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_I
 zip_ref.extractall('./Input_files')
 zip_ref.close()
 
+
+
 copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/NHD/NHDPlusV2_National_Seamless.gdb', './Input_files']
 print " ".join(copy_nhd)
 subprocess.check_call(copy_nhd)
 # zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
 # zip_ref.extractall('./Input_files')
 # zip_ref.close()
+
+# download_nhd = ['wget', 'http://www.horizon-systems.com/NHDPlusData/NHDPlusV21/Data/NationalData/0release_notes_NationalData_V1_To_V2_Crosswalk.pdf']
+# print " ".join(download_nhd)
+# subprocess.check_call(download_nhd)
 
 # builds our connection string, just like for ogr2ogr
 conn = psycopg2.connect(host=host)
