@@ -4,19 +4,29 @@ import subprocess
 import os
 import zipfile
 
-# For local use
-# Paths for NHD flowlines, county boundaries, and land use file
-nhd_dir = 'C:\\GIS\\Multi-project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
-nhd_lines = 'NHDFlowline_Network'
-nhd_path = os.path.join(nhd_dir, nhd_lines)
-# county_path = 'C:\\GIS\\Multi-project\\US_counties\\tl_2017_us_county_reproj_world_eckert_iv.shp'
+# Paths for NHD flowlines if run on a local machine or a spot machine
+nhd_spot_folder = 'Input_files'
+nhd_local_folder = 'C:\\GIS\\Multi-project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
+nhd_gdb = 'NHDPlusV2_National_Seamless.gdb'
+nhd_file = 'NHDFlowline_Network'
+nhd_path_spot = os.path.join(nhd_spot_folder, nhd_gdb)
+nhd_path_local = os.path.join(nhd_local_folder)
+
+# Paths for county boundaries if run on a local machine or a spot machine
+county_file = 'tl_2017_us_county_reproj_World_Eckert_IV.shp'
+county_spot = 'Input_files'
+county_local = 'C:\\GIS\\Multi-project\\US_counties'
+county_path_spot = os.path.join(county_spot, county_file)
+county_path_local = os.path.join(county_local, county_file)
+
+# Paths for land use file
 landuse_path = 'C:\\GIS\\Water\\Buffer_analysis\\TNC_refor_raster_clipped_to_Fulton_Cnty_20180529.tif'
 
-county_path = 'Input_files/tl_2017_us_county_reproj_World_Eckert_IV.shp'
-
+# Names of county and NHD files imported into PostGIS
 counties = "us_counties_reproj"
+NHD = "NHD_streams"
 
-# host="localhost"
+# PostGIS database host
 host="localhost"
 host_name= 'PG:host={}'.format(host)
 
@@ -35,33 +45,31 @@ curs = conn.cursor()
 
 # Commands for importing county boundaries, NHD flowlines, and land use files to Postgres database
 county_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
-                county_path, '-overwrite', '-progress',
+                county_path_spot, '-overwrite', '-progress',
                 '-nln', counties,
                 '-nlt', 'PROMOTE_TO_MULTI',
                 '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
-                # , '-t_srs', 'EPSG:54012'
+                , '-t_srs', 'EPSG:54012'
                 , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
                 ]
-#
-# nhd_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
-#                 nhd_dir, nhd_lines, '-overwrite', '-progress',
-#                 '-select', 'COMID, StreamOrde, FTYPE, FCODE, WBAreaType',
-#                 '-sql', 'SELECT * from NHDFlowline_Network WHERE WBAreaType IN (\'Area of Complex Channels\', \'CanalDitch\', \'StreamRiver\', \'Wash\', \' \')',
-#                 '-nln', 'NHD_streams_new', '-t_srs', 'EPSG:54012', '-dim', '2'
-#                 ]
-#
-# LU_upload = 'raster2pgsql -d -I -C -M -s 6703 {LU} fulton_LU | psql'.format(LU=landuse_path)
+
+nhd_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
+                nhd_path_spot, nhd_file, '-overwrite', '-progress',
+                '-select', 'COMID, StreamOrde, FTYPE, FCODE, WBAreaType',
+                '-sql', 'SELECT * from NHDFlowline_Network WHERE WBAreaType IN (\'Area of Complex Channels\', \'CanalDitch\', \'StreamRiver\', \'Wash\', \' \')',
+                '-nln', NHD, '-t_srs', 'EPSG:54012', '-dim', '2'
+                ]
+
+LU_upload = 'raster2pgsql -d -I -C -M -s 6703 {LU} fulton_LU | psql'.format(LU=landuse_path)
 
 # Actually runs the import commands
 print " ".join(county_upload)
 subprocess.check_call(county_upload)
-# print " ".join(nhd_upload)
-# subprocess.check_call(nhd_upload)
+print " ".join(nhd_upload)
+subprocess.check_call(nhd_upload)
 # print " ".join(LU_upload)
 # subprocess.call(LU_upload, shell=True)
 #
-# county = counties
-# nhd_streams = "NHD_streams_new"
 # area_field = "area_sqmtr"
 #
 # clip = ('CREATE TABLE nhd_clip AS '
@@ -69,7 +77,7 @@ subprocess.check_call(county_upload)
 #         'c.STATEFP, c.COUNTYFP, c.GEOID, c.NAME, '
 #         'n.comid, n.StreamOrde, n.FTYPE, n.FCODE, n.WBAreaType '
 #         'FROM {c} c, {n} n '
-#         'WHERE ST_Intersects(c.wkb_geometry, n.wkb_geometry); '.format(c=county, n=nhd_streams))
+#         'WHERE ST_Intersects(c.wkb_geometry, n.wkb_geometry); '.format(c=counties, n=NHD))
 #
 # print 'Clipping streams to county'
 # curs.execute(clip)
@@ -89,7 +97,7 @@ subprocess.check_call(county_upload)
 #                 'c.STATEFP, c.COUNTYFP, c.GEOID, c.NAME, '
 #                 'n.comid, n.StreamOrde, n.FTYPE, n.FCODE, n.WBAreaType '
 #             'FROM {c} c, nhd_clip_buff n '
-#             'WHERE ST_Intersects(c.wkb_geometry, n.geom); '.format(c=county))
+#             'WHERE ST_Intersects(c.wkb_geometry, n.geom); '.format(c=counties))
 #
 #     dissolve = ('DROP TABLE IF EXISTS {t}; '
 #             'CREATE TABLE {t} AS '
@@ -124,9 +132,9 @@ subprocess.check_call(county_upload)
 #
 # final_delete = ('DROP TABLE nhd_clip; ')
 # curs.execute(final_delete)
-#
-# # Commits changes to Postgres database
-# conn.commit()
-#
-# # Closes the connection to the Postgres database
-# conn.close()
+
+# Commits changes to Postgres database
+conn.commit()
+
+# Closes the connection to the Postgres database
+conn.close()
