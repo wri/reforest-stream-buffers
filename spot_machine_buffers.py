@@ -19,8 +19,8 @@ host="54.175.59.233"
 host_name= 'PG:host={}'.format(host)
 
 copy_counties = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
-print " ".join(copy_files)
-subprocess.check_call(copy_files)
+print " ".join(copy_counties)
+subprocess.check_call(copy_counties)
 
 copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
 
