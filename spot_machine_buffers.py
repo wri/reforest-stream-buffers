@@ -18,9 +18,7 @@ counties = "us_counties_reproj"
 host="54.147.182.79"
 host_name= 'PG:host={}'.format(host)
 
-copy_files = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.shp', '.']
-
-# aws s3 cp s3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.shp C:/GIS/test.shp
+copy_files = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.shp', './Input_files']
 
 print " ".join(copy_files)
 subprocess.check_call(copy_files)
