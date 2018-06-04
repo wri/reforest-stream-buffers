@@ -30,25 +30,25 @@ NHD = "NHD_streams"
 host="localhost"
 host_name= 'PG:host={}'.format(host)
 
+# Copies county shapefile from S3 to spot machine and unzips it
 copy_counties = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
 print " ".join(copy_counties)
 subprocess.check_call(copy_counties)
+print 'COUNTIES DOWNLOADED '
 zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
 zip_ref.extractall('./Input_files')
 zip_ref.close()
+print 'COUNTIES UNZIPPED'
 
-
-
+# Copies NHD from S3 to spot machine and unzips it
 copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/NHD/NHDPlusV2_National_Seamless.gdb.zip', './Input_files']
 print " ".join(copy_nhd)
 subprocess.check_call(copy_nhd)
-# zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_IV.zip', 'r')
-# zip_ref.extractall('./Input_files')
-# zip_ref.close()
-
-# download_nhd = ['wget', 'http://www.horizon-systems.com/NHDPlusData/NHDPlusV21/Data/NationalData/0release_notes_NationalData_V1_To_V2_Crosswalk.pdf']
-# print " ".join(download_nhd)
-# subprocess.check_call(download_nhd)
+print 'NHD DOWNLOADED'
+zip_ref = zipfile.ZipFile('./Input_files/NHDPlusV2_National_Seamless.gdb.zip', 'r')
+zip_ref.extractall('./Input_files')
+zip_ref.close()
+print 'NHD UNZIPPED'
 
 # builds our connection string, just like for ogr2ogr
 conn = psycopg2.connect(host=host)
@@ -70,7 +70,8 @@ nhd_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
                 nhd_path_spot, nhd_file, '-overwrite', '-progress',
                 '-select', 'COMID, StreamOrde, FTYPE, FCODE, WBAreaType',
                 '-sql', 'SELECT * from NHDFlowline_Network WHERE WBAreaType IN (\'Area of Complex Channels\', \'CanalDitch\', \'StreamRiver\', \'Wash\', \' \')',
-                '-nln', NHD, '-t_srs', 'EPSG:54012', '-dim', '2'
+                '-nln', NHD, '-dim', '2'
+                # , '-t_srs', 'EPSG:54012'
                 ]
 
 LU_upload = 'raster2pgsql -d -I -C -M -s 6703 {LU} fulton_LU | psql'.format(LU=landuse_path)
