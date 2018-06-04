@@ -9,13 +9,15 @@ import zipfile
 nhd_dir = 'C:\\GIS\\Multi-project\\NHDPlusV2\\NHDPlusNationalData\\NHDPlusV2_National_Seamless.gdb'
 nhd_lines = 'NHDFlowline_Network'
 nhd_path = os.path.join(nhd_dir, nhd_lines)
-county_path = 'C:\\GIS\\Multi-project\\US_counties\\tl_2017_us_county_reproj_world_eckert_iv.shp'
+# county_path = 'C:\\GIS\\Multi-project\\US_counties\\tl_2017_us_county_reproj_world_eckert_iv.shp'
 landuse_path = 'C:\\GIS\\Water\\Buffer_analysis\\TNC_refor_raster_clipped_to_Fulton_Cnty_20180529.tif'
+
+county_path = 'Input_files/tl_2017_us_county_reproj_World_Eckert_IV.shp'
 
 counties = "us_counties_reproj"
 
 # host="localhost"
-host="54.175.59.233"
+host="localhost"
 host_name= 'PG:host={}'.format(host)
 
 copy_counties = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
@@ -25,31 +27,21 @@ zip_ref = zipfile.ZipFile('./Input_files/tl_2017_us_county_reproj_World_Eckert_I
 zip_ref.extractall('./Input_files')
 zip_ref.close()
 
-copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/tl_2017_us_county_reproj_World_Eckert_IV.zip', './Input_files']
+# builds our connection string, just like for ogr2ogr
+conn = psycopg2.connect(host=host)
 
-# create_user = ['CREATE USER', '\"david.gibbs\"']
-# create_db = ['CREATE DATABASE', '\"david.gibbs\"', 'OWNER', '\"david.gibbs\"']
-#
-# print " ".join(create_user)
-# subprocess.check_call(create_user)
-# print " ".join(create_db)
-# subprocess.check_call(create_db)
+# creates a cursor object
+curs = conn.cursor()
 
-# # builds our connection string, just like for ogr2ogr
-# conn = psycopg2.connect(host=host)
-#
-# # creates a cursor object
-# curs = conn.cursor()
-#
-# # Commands for importing county boundaries, NHD flowlines, and land use files to Postgres database
-# county_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
-#                 county_path, '-overwrite', '-progress',
-#                 '-nln', counties,
-#                 '-nlt', 'PROMOTE_TO_MULTI',
-#                 '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
-#                 , '-t_srs', 'EPSG:54012'
-#                 , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
-#                 ]
+# Commands for importing county boundaries, NHD flowlines, and land use files to Postgres database
+county_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
+                county_path, '-overwrite', '-progress',
+                '-nln', counties,
+                '-nlt', 'PROMOTE_TO_MULTI',
+                '-select', 'STATEFP, COUNTYFP, GEOID, NAME'
+                , '-t_srs', 'EPSG:54012'
+                , '-sql', 'SELECT * from tl_2017_us_county_reproj_world_eckert_iv WHERE GEOID IN (\'13121\')'
+                ]
 #
 # nhd_upload = ['ogr2ogr', '-f', 'PostgreSQL', host_name,
 #                 nhd_dir, nhd_lines, '-overwrite', '-progress',
@@ -59,10 +51,10 @@ copy_nhd = ['aws', 's3', 'cp', 's3://gfw-files/dgibbs/Multi_project/US_counties/
 #                 ]
 #
 # LU_upload = 'raster2pgsql -d -I -C -M -s 6703 {LU} fulton_LU | psql'.format(LU=landuse_path)
-#
-# # Actually runs the import commands
-# print " ".join(county_upload)
-# subprocess.check_call(county_upload)
+
+# Actually runs the import commands
+print " ".join(county_upload)
+subprocess.check_call(county_upload)
 # print " ".join(nhd_upload)
 # subprocess.check_call(nhd_upload)
 # print " ".join(LU_upload)
