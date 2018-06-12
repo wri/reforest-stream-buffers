@@ -7,7 +7,7 @@ arcpy.CheckOutExtension("Spatial")
 print 'Start time:', str(datetime.now())
 
 # Buffer distance (ft)
-buffer_dist = 5
+buffer_dist = 30
 buffer_dist = str(buffer_dist)
 buffer_arg = buffer_dist + " feet"
 
@@ -123,20 +123,22 @@ merged_file_reproj_full = os.path.join(full_gdb, merged_file_reproj)
 # out_coords_land_use = arcpy.Describe(land_use).spatialReference
 # arcpy.Project_management(merged_file_full, merged_file_reproj_full, out_coords_land_use)
 #
-# # Calculates the area of each reforestable land use in each county buffer
-#
-# print 'Calculating area of reforestable wetland in buffer'
-# wetland_table = os.path.join(full_gdb, 'Wetland_output_' + buffer_dist + '_ft')
-# where = '"Wetland" IN (1, 2) AND "NAFDforest" NOT IN (1) AND "Urban" NOT IN (1) AND "Roads" NOT IN (1)'
-# arcpy.MakeRasterLayer_management(land_use, "reforestable_wetland", where)
-# arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", "reforestable_wetland", "Wetland", wetland_table)
-#
-print 'Calculating area of pasture, crop, pasture/crop, and other reforestable land in buffer'
-pasture_crop_table= os.path.join(full_gdb, 'Pasture_crop_output_' + buffer_dist + '_ft')
-arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", land_use, "RC", pasture_crop_table)
+# Calculates the area of each reforestable land use in each county buffer
+
+print 'Calculating area of reforestable wetland in buffer'
+
+wetland_table = os.path.join(full_gdb, 'Wetland_output_' + buffer_dist + '_ft')
+# Wetland reforestable area (1 in field Wetland) is:
+# '"Wetland" IN (1, 2) AND "NAFDforest" IN (0) AND "Urban" IN (0) AND "Roads" IN (0) AND "BPSforest" IN (1, 3)'
+arcpy.MakeRasterLayer_management(land_use, "reforestable_wetland")
+arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", "reforestable_wetland", "Wetlnd", wetland_table)
+
+# print 'Calculating area of pasture, crop, pasture/crop, and other reforestable land in buffer'
+# pasture_crop_table= os.path.join(full_gdb, 'Pasture_crop_output_' + buffer_dist + '_ft')
+# arcpy.sa.TabulateArea(merged_file_reproj_full, "GEOID", land_use, "RC", pasture_crop_table)
 
 print 'Calculated reforestable land area'
-
+#
 # # Calculates the area of open water within the buffer
 # print 'Calculating open water area'
 # open_water_table= os.path.join(full_gdb, 'Open_water_output_' + buffer_dist + '_ft_new')
